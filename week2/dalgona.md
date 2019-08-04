@@ -51,6 +51,9 @@
   AC-Alignment check flag 이 비트와 CR0 레지스터의 AM 비트가 set되어 있으면 메모리 레퍼런스의 ac가 가능하다.  
   VIF-Virtual interrupt flag. IF flag의 가상 이미지. VIP flag와 결합시켜 사용  
   VIP-Virtual interrupt pending flag. 인터럽트가 pending(경쟁상태)되었음을 의미  
-  ID-Identification flag. CPUID instruction을 지원하는 CPU인지 나타낸다.  
+  ID-Identification flag. CPUID instruction을 지원하는 CPU인지 나타낸다. 
   인스트력션 포인터 (instruction pointer): 다음 수행해야할 명령(instruction)이 있는 메모리 주소가 들어가 있는 레지스터. 다음 실행할 명령어가 있는 code segment의 offset 값을 가진다. 하나의 명령어 범위에서 선형 명령 집합의 다음 위치를 가리킬 수 있다. 또한 JMP,Jcc,CALL,RET와 IRET instruction이 있는 주소값을 가진다. EIP 레지스터는 소프트웨어에 의해 바로 엑세스 불가하다. 그리고 control-transfer instruction(JMP,Jcc,CALL,RET)이나 interrupt와 exception에 의해서 제어된다. EIP 레지스터를 읽는 방법은 CALL instruction 수행 후 프로시저 스텍(procedure stack)으로부터 리턴하는 instruction의 address를 읽는 것이다. 프로시저 스텍의 return instruction pointer의 값을 수정하고 return instruction(RET,IRET)을 수행하여 EIP 레지스터의 값을 간접적으로 지정할 수 있다.  
+3. 프로그램 구동시 segment에서는 어떤 일이?  
+  프로그램을 구동 시 어떤 일이 일어나는지 알기 위해 간단한 C 코드를 짠다. gcc -S-o 옵션을 이용하여 C코드를 컴파일한 어셈블리 코드를 만들어낸다. c 프로그램이 컴파일 되어 실제 메모리 상 어느 위치에 존재하는지 알기 위해 컴파일을 한 다음 gdb를  이용해 어셈블리 코드와 메모리에 적재될 logical address를 확인한다. gdb를 열었을 때 가장 앞에 붙어 있는 주소는 logical address이다. 이 주소를 통해 main 함수 내의 함수들은 아래에 자리 잡고 main()함수는 위에 자리잡은 것을 알 수 있다. segment의 logical address는 0x08000000부터 시작하지만 실제 프로그램이 컴파일과 링크되는 과정에서 다른 라이브러리들을 필요로 하게 된다. 따라서 코딩한 코드가 시작되는 지점은 시작점과 일치하지 않는다. 또한 stack segment도 0xBFFFFFFF까지 할당되지만 필요한 환경 변수 실행 옵션 주어진 변수 등등에 의해서 가용 영역은 그보다 아래에 자리잡고 있다. 우리가 짠 C프로그램은 전역변수를 지정하지 않기에 data segment에는 라이브러리의 전역변수만 들어있을 것이다. 여기서부터는 segment의 형태를 단계별로 묘사를 하지 못하기에 달고나문서를 참고하기 바란다.  
+  
   
