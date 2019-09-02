@@ -24,5 +24,6 @@ int __cdecl main(int argc, const char **argv, const char **envp)
   return 0;
 }
 ~~~
-IDA를 통해 위와 같은 코드를 확인할 수 있다. 마지막 if 문을 만족시킬 경우 win()을 통해 flag 획득이 가능하다. 
+IDA를 통해 위와 같은 코드를 확인할 수 있다. 마지막 if 문을 만족시킬 경우 win()을 통해 flag 획득이 가능하다. v6,v7,v8을 사용하는 형태가 앞의 add 문제와 비슷하다.
+문제를 풀면서 v5[0]를 
 
